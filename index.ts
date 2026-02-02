@@ -12,7 +12,12 @@ export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
   }
 
   async set(key, value, expiresInSeconds?) {
-    await this.db.put(key, value);
+    let dataToSave: { value: any; expireAt?: number } = { value: value };
+    if (expiresInSeconds) {
+      const expireAt = Date.now() + (expiresInSeconds * 1000);
+      dataToSave.expireAt = expireAt;
+    }
+    await this.db.put(key, JSON.stringify(dataToSave));
 
     if (!expiresInSeconds) return;
     setTimeout(async () => {
@@ -23,7 +28,12 @@ export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
   async get(key) {
     const value = await this.db.get(key).catch(() => null);
     if (value === undefined) return null;
-    return value;
+    const parsed = JSON.parse(value);
+    if (parsed.expireAt && Date.now() > parsed.expireAt) {
+      await this.db.del(key).catch(() => null);
+      return null;
+    }
+    return parsed.value;
   }
 
   async delete(key) {
