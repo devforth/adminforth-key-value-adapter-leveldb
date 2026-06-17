@@ -3,4 +3,4 @@ allowBuilds:
   better-sqlite3: true
   classic-level: true
 minimumReleaseAgeExclude:
-  - adminforth@3.0.1
+  - adminforth
