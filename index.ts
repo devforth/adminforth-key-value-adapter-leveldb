@@ -40,4 +40,23 @@ export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
     await this.db.del(key);
   }
 
+  async listByPrefix(prefix: string, limit: number): Promise<Record<string, string>> {
+    if (limit <= 0) return {};
+
+    const results: Record<string, string> = {};
+    const upperBound = `${prefix}\xFF`;
+
+    for await (const [key, value] of this.db.iterator({ gte: prefix, lt: upperBound })) {
+      const parsed = JSON.parse(String(value));
+      if (parsed.expireAt && Date.now() > parsed.expireAt) {
+        await this.db.del(String(key)).catch(() => null);
+        continue;
+      }
+
+      results[String(key)] = String(parsed.value);
+      if (Object.keys(results).length >= limit) break;
+    }
+
+    return results;
+  }
 }
