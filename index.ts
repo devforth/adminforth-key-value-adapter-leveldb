@@ -40,10 +40,10 @@ export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
     await this.db.del(key);
   }
 
-  async listByPrefix(prefix: string, limit: number): Promise<Record<string, string>> {
-    if (limit <= 0) return {};
+  async listByPrefix(prefix: string, limit: number): Promise<Record<string, string>[]> {
+    if (limit <= 0) return [];
 
-    const results: Record<string, string> = {};
+    const results: Record<string, string>[] = [];
     const upperBound = `${prefix}\xFF`;
 
     for await (const [key, value] of this.db.iterator({ gte: prefix, lt: upperBound })) {
@@ -53,8 +53,8 @@ export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
         continue;
       }
 
-      results[String(key)] = String(parsed.value);
-      if (Object.keys(results).length >= limit) break;
+      results.push({ [String(key)]: String(parsed.value) });
+      if (results.length >= limit) break;
     }
 
     return results;
