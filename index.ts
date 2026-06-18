@@ -5,9 +5,23 @@ import { Level } from 'level';
 export default class LevelDBKeyValueAdapter implements KeyValueAdapter {
   options: AdapterOptions;
   private db: Level;
+  private static registeredDbPaths: string[] = [];
 
   constructor(options: AdapterOptions) {
     this.options = options;
+    if (LevelDBKeyValueAdapter.registeredDbPaths.includes(this.options.dbPath)) {
+      throw new Error(`Database path "${this.options.dbPath}" is already registered.
+        Seems like you are trying to use the same database path for multiple instances of LevelDBKeyValueAdapter.
+        If you want to use the same database path for multiple instances, then you should use a single instance of LevelDBKeyValueAdapter and share it across your application.
+        For example: 
+        const levelDbAdapter = new LevelDBKeyValueAdapter({ dbPath: 'path/to/db' });
+        //instance 1
+        new StorageAdapter({... keyValueAdapter: levelDbAdapter });
+        //instance 2
+        new StorageAdapter({... keyValueAdapter: levelDbAdapter });
+      `);
+    }
+    LevelDBKeyValueAdapter.registeredDbPaths.push(this.options.dbPath);
     this.db = new Level(this.options.dbPath, this.options.dbOptions || {});
   }
 
